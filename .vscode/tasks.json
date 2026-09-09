@@ -1,0 +1,61 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Conan: install dependencies for active conanfile",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Conan: install dependencies",
+                "CMake: configure Release"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Conan: install dependencies",
+            "type": "process",
+            "command": "conan",
+            "args": [
+                "install",
+                "${file}",
+                "--output-folder=${fileDirname}/build",
+                "--settings=build_type=Release",
+                "--settings=compiler.cppstd=20",
+                "--build=missing"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "hide": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: configure Release",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "..",
+                "-DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake",
+                "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "options": {
+                "cwd": "${fileDirname}/build"
+            },
+            "hide": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: build from active file in src",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source_dir=\"$1\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; cmake --build \"$source_dir/../build\"",
+                "_",
+                "${fileDirname}"
+            ],
+            "group": "build",
+            "problemMatcher": "$gcc"
+        }
+    ]
+}
