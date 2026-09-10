@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+какcmake_minimum_required(VERSION 3.11)
 
 # Проект называется Hello и написан на C++
 project(Hello CXX)
@@ -28,3 +28,4 @@ find_package(Threads REQUIRED)
 add_executable(hello src/main.cpp)
 # Просим компоновщик подключить библиотеку для поддержки потоков
 target_link_libraries(hello PRIVATE Threads::Threads)
+
