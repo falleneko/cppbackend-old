@@ -1,4 +1,4 @@
-какcmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.11)
 
 # Проект называется Hello и написан на C++
 project(Hello CXX)
