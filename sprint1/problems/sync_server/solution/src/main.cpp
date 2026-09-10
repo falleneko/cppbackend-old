@@ -74,7 +74,7 @@ StringResponse HandleRequest(StringRequest&& req) {
     // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
     auto tgt = std::string(req.target());
     tgt.erase(0, 1);
-    std::string response_body = std::format("Hello, {0}", tgt);
+    std::string response_body = "Hello, "s + tgt;
     return text_response(http::status::ok, response_body);
 }
 
