@@ -5,6 +5,11 @@ project(Hello CXX)
 # Исходый код будет компилироваться с поддержкой стандарта С++ 20
 set(CMAKE_CXX_STANDARD 20)
 
+# Подключаем сгенерированный скрипт conanbuildinfo.cmake, созданный Conan
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+# Выполняем макрос из conanbuildinfo.cmake, который настроит СMake на работу с библиотеками, установленными Conan
+conan_basic_setup()
+
 # Ищем Boost версии 1.78
 find_package(Boost 1.78.0 REQUIRED)
 if(Boost_FOUND)
@@ -18,8 +23,6 @@ endif()
 # Следующие две строки подключат эту библиотеку на таких платформах
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-
-add_compile_definitions(BOOST_BEAST_USE_STD_STRING_VIEW) 
 
 # Проект содержит единственный исходный файл src/main.cpp
 add_executable(hello src/main.cpp)
