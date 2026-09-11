@@ -28,8 +28,6 @@ public:
         , gas_cooker_{std::move(gas_cooker)}
         , bread_timer_{io}
         , sausage_timer_{io} {
-        bread_timer_.expires_after(HotDog::MIN_BREAD_COOK_DURATION);
-        sausage_timer_.expires_after(HotDog::MIN_SAUSAGE_COOK_DURATION);
     }
 
     // Запускает асинхронное выполнение заказа
@@ -58,6 +56,7 @@ private:
             return;
         }
 
+        bread_timer_.expires_after(HotDog::MIN_BREAD_COOK_DURATION);
         bread_timer_.async_wait(net::bind_executor(strand_, [self = shared_from_this()](sys::error_code ec) {
             if (ec || self->delivered_) {
                 return;
@@ -77,6 +76,7 @@ private:
             return;
         }
 
+        sausage_timer_.expires_after(HotDog::MIN_SAUSAGE_COOK_DURATION);
         sausage_timer_.async_wait(net::bind_executor(strand_, [self = shared_from_this()](sys::error_code ec) {
             if (ec || self->delivered_) {
                 return;
@@ -105,11 +105,14 @@ private:
         if (delivered_) {
             return;
         }
-        delivered_ = true;
+        
         if (error) {
+            delivered_ = true;
             handler_(Result<HotDog>{std::move(error)});
         } else {
-            handler_(Result<HotDog>{HotDog{id_, sausage_, bread_}});
+            Result<HotDog> result{HotDog{id_, sausage_, bread_}};
+            delivered_ = true;
+            handler_(std::move(result));
         }
     }
 
