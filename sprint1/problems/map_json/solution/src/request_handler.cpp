@@ -7,8 +7,8 @@ namespace http_handler {
     std::string RequestHandler::API_URL = "/api/";
 
     const std::unordered_map<std::string, RequestHandler::AllowedHttpMethods> RequestHandler::api_methods_ = {
-        {R"(v1\/maps$)", {RequestHandler::ApiMethod::GET_MAPS, http_server::HttpMethod::GET}},
-        {R"(v1\/maps\/(.*[^\/])$)", {RequestHandler::ApiMethod::GET_MAP, http_server::HttpMethod::GET}},
+        {R"(v1\/maps$)", {RequestHandler::ApiMethod::GET_MAPS, http::verb::get}},
+        {R"(v1\/maps\/(.*[^\/])$)", {RequestHandler::ApiMethod::GET_MAP, http::verb::get}},
     };
 
     std::tuple<RequestHandler::AllowedHttpMethods, std::string> RequestHandler::GetApiMethod(std::string url) {
@@ -22,7 +22,7 @@ namespace http_handler {
                 return {method, matches.size() > 1 ? matches[1].str() : std::string{}};
             }
         }
-        return {{ApiMethod::UNKNOWN, http_server::HttpMethod::UNKNOWN}, ""};
+        return {{ApiMethod::UNKNOWN, http::verb::unknown}, ""};
     }
 
     json::object RequestHandler::SerializeMap(const model::Map& map) {

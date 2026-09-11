@@ -42,25 +42,21 @@ StringResponse HandleRequest(StringRequest&& req) {
         return MakeStringResponse(status, text, req.version(), req.keep_alive());
     };
     std::string response_body;
-    std::string_view method = req.method_string();
-    if (!http_server::MethodToString.contains(method)) {
-        return MakeStringResponse(http::status::method_not_allowed, "Invalid method", req.version(), req.keep_alive());
-    }
-    switch (http_server::MethodToString.at(method)) {
-        case http_server::HttpMethodList::GET : {
+    switch (req.method()) {
+        case http::verb::get: {
             auto tgt = std::string(req.target());
             tgt.erase(0, 1);
             response_body = std::format("Hello, {0}", tgt);
             break;
         }
-        case http_server::HttpMethodList::HEAD : {
+        case http::verb::head: {
             break;
         }
-        default : {
-            return MakeStringResponse(http::status::method_not_allowed, "Invalid method", req.version(), req.keep_alive());
+        default: {
+            return text_response(http::status::method_not_allowed, "Invalid method"sv);
         }
     }
-    return MakeStringResponse(http::status::ok, response_body, req.version(), req.keep_alive());
+    return text_response(http::status::ok, response_body);
 }
 
 // Запускает функцию fn на n потоках, включая текущий

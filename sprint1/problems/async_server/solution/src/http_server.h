@@ -7,7 +7,6 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <unordered_map>
 
 namespace http_server {
 
@@ -18,9 +17,6 @@ using tcp = net::ip::tcp;
 namespace beast = boost::beast;
 namespace http = beast::http;
 
-
-enum class HttpMethodList {GET, POST, HEAD};
-extern const std::unordered_map<std::string_view, HttpMethodList> MethodToString;
 
 void ReportError(beast::error_code ec, std::string_view what);
 

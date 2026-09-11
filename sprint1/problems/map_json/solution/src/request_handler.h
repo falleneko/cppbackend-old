@@ -2,6 +2,7 @@
 #include "http_server.h"
 #include "model.h"
 #include <boost/json.hpp>
+#include <unordered_map>
 #include <variant>
 
 namespace http_handler {
@@ -104,7 +105,7 @@ public:
     }
 private:
     using HandlerResult = std::variant<json::object, json::array>;
-    using AllowedHttpMethods = std::tuple<RequestHandler::ApiMethod, http_server::HttpMethod>;
+    using AllowedHttpMethods = std::tuple<RequestHandler::ApiMethod, http::verb>;
 
     template <typename Body, typename Allocator, typename Send>
     void Run(http::request<Body, http::basic_fields<Allocator>>& req, Send& send) {
@@ -113,7 +114,7 @@ private:
         if (api_method == ApiMethod::UNKNOWN) {
             throw NotFoundException();
         }
-        if (http_method != http_server::StringAsMethod(req.method_string())) {
+        if (http_method != req.method()) {
             throw MethodNotAllowedException();
         }
         HandlerResult response_body;

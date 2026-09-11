@@ -7,7 +7,6 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <unordered_map>
 
 namespace http_server {
 
@@ -19,10 +18,6 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 
 
-enum class HttpMethod {GET, POST, HEAD, UNKNOWN};
-extern const std::unordered_map<std::string_view, HttpMethod> MethodToString;
-
-HttpMethod StringAsMethod(std::string_view method);
 void ReportError(beast::error_code ec, std::string_view what);
 
 class SessionBase {

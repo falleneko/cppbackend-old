@@ -71,11 +71,22 @@ StringResponse HandleRequest(StringRequest&& req) {
         return MakeStringResponse(status, text, req.version(), req.keep_alive());
     };
 
-    // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
     auto tgt = std::string(req.target());
     tgt.erase(0, 1);
     std::string response_body = "Hello, "s + tgt;
-    return text_response(http::status::ok, response_body);
+
+    if (req.method() == http::verb::get) {
+        return text_response(http::status::ok, response_body);
+    }
+    if (req.method() == http::verb::head) {
+        auto response = text_response(http::status::ok, ""sv);
+        response.content_length(response_body.size());
+        return response;
+    }
+
+    auto response = text_response(http::status::method_not_allowed, "Invalid method"sv);
+    response.set(http::field::allow, "GET, HEAD"sv);
+    return response;
 }
 
 template <typename RequestHandler>
