@@ -25,9 +25,13 @@ namespace http_handler {
         return {{ApiMethod::UNKNOWN, http::verb::unknown}, ""};
     }
 
-    json::object RequestHandler::SerializeMap(const model::Map& map) {
+    json::object RequestHandler::SerializeMap(const model::Map& map, const bool is_simple) {
         json::object res;
         res.emplace("id", *map.GetId());
+        res.emplace("name", map.GetName());
+        if (is_simple) {
+            return res;
+        }
         auto roads = map.GetRoads();
         res["roads"] = json::array();
         for (const auto& road : roads) {
@@ -69,7 +73,7 @@ namespace http_handler {
         json::array res;
         auto maps = game_.GetMaps();
         for (auto& map : maps) {
-            res.emplace_back(SerializeMap(map));
+            res.emplace_back(SerializeMap(map, true));
         }        
         return res;
     }
@@ -81,7 +85,7 @@ namespace http_handler {
         if (!map) {
             throw MapNotFoundException();
         }
-        return SerializeMap(*map);
+        return SerializeMap(*map, false);
     }
 
 }  // namespace http_handler
