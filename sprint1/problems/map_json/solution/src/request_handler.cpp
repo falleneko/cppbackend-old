@@ -12,9 +12,6 @@ namespace http_handler {
     };
 
     std::tuple<RequestHandler::AllowedHttpMethods, std::string> RequestHandler::GetApiMethod(std::string url) {
-        if (!url.starts_with(API_URL)) {
-            throw NotFoundException();
-        }
         url = url.substr(API_URL.length(), url.length());
         for (const auto& [pattern, method] : api_methods_) {
             std::smatch matches;

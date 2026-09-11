@@ -109,14 +109,20 @@ private:
 
     template <typename Body, typename Allocator, typename Send>
     void Run(http::request<Body, http::basic_fields<Allocator>>& req, Send& send) {
-        auto [allowed_methods, target] = GetApiMethod(std::move(std::string(req.target())));
+        std::string url(req.target());
+        if (!url.starts_with(API_URL)) {
+            HandleNotApi(req, send);
+        }
+
+        auto [allowed_methods, target] = GetApiMethod(std::move(url));
         auto [api_method, http_method] = allowed_methods;
         if (api_method == ApiMethod::UNKNOWN) {
-            throw NotFoundException();
+            throw BadRequestException();
         }
         if (http_method != req.method()) {
             throw MethodNotAllowedException();
         }
+
         HandlerResult response_body;
         switch (api_method) {
             case ApiMethod::GET_MAPS:
@@ -126,9 +132,15 @@ private:
                 response_body = HandleGetMap(api_method, target);
                 break;
             default:
-                throw NotFoundException();
+                throw BadRequestException();
         }
+
         SendResponse(req, send, response_body);
+    }
+
+    template <typename Body, typename Allocator, typename Send>
+    void HandleNotApi(http::request<Body, http::basic_fields<Allocator>>& req, Send& send) {
+        throw NotFoundException();
     }
 
     HandlerResult HandleGetMaps(ApiMethod method);
