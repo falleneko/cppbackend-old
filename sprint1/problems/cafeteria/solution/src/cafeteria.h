@@ -3,6 +3,7 @@
 #include <sdkddkver.h>
 #endif
 
+#include <boost/asio/bind_executor.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/strand.hpp>
@@ -19,39 +20,31 @@ using HotDogHandler = std::function<void(Result<HotDog> hot_dog)>;
 class Order : public std::enable_shared_from_this<Order> {
 public:
     Order(net::io_context& io, int id, std::shared_ptr<Sausage> sausage, std::shared_ptr<Bread> bread, HotDogHandler handler, std::shared_ptr<GasCooker> gas_cooker)
-        : io_{io}
+        : strand_{net::make_strand(io)}
         , id_{id}
         , sausage_{std::move(sausage)}
         , bread_{std::move(bread)}
         , handler_{std::move(handler)}
-        , gas_cooker_{std::move(gas_cooker)} {
+        , gas_cooker_{std::move(gas_cooker)}
+        , bread_timer_{io}
+        , sausage_timer_{io} {
+        bread_timer_.expires_after(HotDog::MIN_BREAD_COOK_DURATION);
+        sausage_timer_.expires_after(HotDog::MIN_SAUSAGE_COOK_DURATION);
     }
 
     // Запускает асинхронное выполнение заказа
     void Execute() {
-        net::post(io_, [self = shared_from_this()]() {
+        net::dispatch(strand_, [self = shared_from_this()] {
             try {
                 self->bread_->StartBake(*self->gas_cooker_, [self] {
-                    net::steady_timer timer(self->io_, HotDog::MIN_BREAD_COOK_DURATION);
-                    timer.wait();
-                    self->bread_->StopBaking();
-                    if (self->IsReadyToPack()) {
-                        self->Pack();
-                    }
+                    net::dispatch(self->strand_, [self] {
+                        self->OnBreadStarted();
+                    });
                 });
-            } catch (...) {
-                self->Deliver(std::current_exception());
-            }
-        });
-        net::post(io_, [self = shared_from_this()]() {
-            try {
                 self->sausage_->StartFry(*self->gas_cooker_, [self] {
-                    net::steady_timer timer(self->io_, HotDog::MIN_SAUSAGE_COOK_DURATION);
-                    timer.wait();
-                    self->sausage_->StopFry();
-                    if (self->IsReadyToPack()) {
-                        self->Pack();
-                    }
+                    net::dispatch(self->strand_, [self] {
+                        self->OnSausageStarted();
+                    });
                 });
             } catch (...) {
                 self->Deliver(std::current_exception());
@@ -60,23 +53,58 @@ public:
     }
 
 private:
+    void OnBreadStarted() {
+        if (delivered_) {
+            return;
+        }
+
+        bread_timer_.async_wait(net::bind_executor(strand_, [self = shared_from_this()](sys::error_code ec) {
+            if (ec || self->delivered_) {
+                return;
+            }
+
+            try {
+                self->bread_->StopBaking();
+                self->TryPack();
+            } catch (...) {
+                self->Deliver(std::current_exception());
+            }
+        }));
+    }
+
+    void OnSausageStarted() {
+        if (delivered_) {
+            return;
+        }
+
+        sausage_timer_.async_wait(net::bind_executor(strand_, [self = shared_from_this()](sys::error_code ec) {
+            if (ec || self->delivered_) {
+                return;
+            }
+
+            try {
+                self->sausage_->StopFry();
+                self->TryPack();
+            } catch (...) {
+                self->Deliver(std::current_exception());
+            }
+        }));
+    }
+
     [[nodiscard]] bool IsReadyToPack() const {
         return bread_->IsCooked() && sausage_->IsCooked();
     }
 
-    void Pack() {
-        if (delivered_) {
-            Deliver(std::make_exception_ptr(std::logic_error("Hot dog has already been delivered")));
-            return;
+    void TryPack() {
+        if (!delivered_ && IsReadyToPack()) {
+            Deliver({});
         }
-        if (!IsReadyToPack()) {
-            Deliver(std::make_exception_ptr(std::logic_error("Hot dog is not ready to pack")));
-            return;
-        }
-        Deliver({});
     }
 
     void Deliver(std::exception_ptr error) {
+        if (delivered_) {
+            return;
+        }
         delivered_ = true;
         if (error) {
             handler_(Result<HotDog>{std::move(error)});
@@ -85,15 +113,15 @@ private:
         }
     }
 
-    net::io_context& io_;
+    net::strand<net::io_context::executor_type> strand_;
     int id_;
     std::shared_ptr<Sausage> sausage_;
     std::shared_ptr<Bread> bread_;
     HotDogHandler handler_;
     std::shared_ptr<GasCooker> gas_cooker_;
+    net::steady_timer bread_timer_;
+    net::steady_timer sausage_timer_;
     bool delivered_ = false;
-    static const int MAX_SAUSAGE_COOK_DURATION_MS = 1500;
-    static const int MAX_BREAD_COOK_DURATION_MS = 1000;
 };
 
 // Класс "Кафетерий". Готовит хот-доги
