@@ -46,7 +46,7 @@ StringResponse HandleRequest(StringRequest&& req) {
         case http::verb::get: {
             auto tgt = std::string(req.target());
             tgt.erase(0, 1);
-            response_body = "Hello, {0}"s + tgt;
+            response_body = "Hello, "s + tgt;
             break;
         }
         case http::verb::head: {
